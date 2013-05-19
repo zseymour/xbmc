@@ -312,7 +312,7 @@ bool CVideoDatabase::CreateTables()
     m_pDS->exec("CREATE INDEX ix_seasons ON seasons (idShow, season)");
 
     CLog::Log(LOGINFO, "create art table");
-    m_pDS->exec("CREATE TABLE art(art_id INTEGER PRIMARY KEY, media_id INTEGER, media_type TEXT, type TEXT, url TEXT)");
+    m_pDS->exec("CREATE TABLE art(art_id INTEGER PRIMARY KEY, media_id INTEGER, media_type TEXT, type TEXT, url TEXT, lastUpdated TEXT)");
     m_pDS->exec("CREATE INDEX ix_art ON art(media_id, media_type(20), type(20))");
 
     CLog::Log(LOGINFO, "create tag table");
@@ -3705,20 +3705,20 @@ void CVideoDatabase::SetArtForItem(int mediaId, const string &mediaType, const s
     // don't set <foo>.<bar> art types - these are derivative types from parent items
     if (artType.find('.') != string::npos)
       return;
-
+    
     CStdString sql = PrepareSQL("SELECT art_id FROM art WHERE media_id=%i AND media_type='%s' AND type='%s'", mediaId, mediaType.c_str(), artType.c_str());
     m_pDS->query(sql.c_str());
     if (!m_pDS->eof())
     { // update
       int artId = m_pDS->fv(0).get_asInt();
       m_pDS->close();
-      sql = PrepareSQL("UPDATE art SET url='%s' where art_id=%d", url.c_str(), artId);
+      sql = PrepareSQL("UPDATE art SET url='%s', lastUpdated='%s' where art_id=%d", url.c_str(), CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str(), artId);
       m_pDS->exec(sql.c_str());
     }
     else
     { // insert
       m_pDS->close();
-      sql = PrepareSQL("INSERT INTO art(media_id, media_type, type, url) VALUES (%d, '%s', '%s', '%s')", mediaId, mediaType.c_str(), artType.c_str(), url.c_str());
+      sql = PrepareSQL("INSERT INTO art(media_id, media_type, type, url, lastUpdated) VALUES (%d, '%s', '%s', '%s', '%s')", mediaId, mediaType.c_str(), artType.c_str(), url.c_str(), CDateTime::GetCurrentDateTime().GetAsDBDateTime().c_str());
       m_pDS->exec(sql.c_str());
     }
   }
