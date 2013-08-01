@@ -1114,6 +1114,33 @@ int CObjectDatabase::GetPathId(const CStdString& strPath)
 	return -1;
 }
 
+bool CObjectDatabase::GetSubPaths(const CStdString &basepath, vector< pair<int,string> >& subpaths)
+{
+  CStdString sql;
+  try
+  {
+    if (!m_pDB.get() || !m_pDS.get())
+      return false;
+
+    CStdString path(basepath);
+    URIUtils::AddSlashAtEnd(path);
+    sql = PrepareSQL("SELECT idPath,path FROM paths WHERE SUBSTR(path,1,%i)='%s'", StringUtils::utf8_strlen(path.c_str()), path.c_str());
+    m_pDS->query(sql.c_str());
+    while (!m_pDS->eof())
+    {
+      subpaths.push_back(make_pair(m_pDS->fv(0).get_asInt(), m_pDS->fv(1).get_asString()));
+      m_pDS->next();
+    }
+    m_pDS->close();
+    return true;
+  }
+  catch (...)
+  {
+    CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, sql.c_str());
+  }
+  return false;
+}
+
 bool CObjectDatabase::GetPathHash(const CStdString &path, CStdString &hash)
 {
 	try

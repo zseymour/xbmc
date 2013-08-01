@@ -159,6 +159,7 @@ public:
 
 	int AddPath(const CStdString& strPath);
 	int GetPathId(const CStdString& strPath);
+	bool GetSubPaths(const CStdString &basepath, std::vector< std::pair<int,std::string> >& subpaths);
 	bool GetPathHash(const CStdString &path, CStdString &hash);
 	bool SetPathHash(const CStdString &path, const CStdString &hash);
 	void SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName);
