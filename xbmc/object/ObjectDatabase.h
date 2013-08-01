@@ -261,4 +261,6 @@ private:
 	bool ParseStreamDetails(CStdString xml, CStreamDetails& details);
 };
 
+XBMC_GLOBAL(CObjectDatabase, g_objectDatabase);
+
 #endif /* OBJECTDATABASE_H_ */
