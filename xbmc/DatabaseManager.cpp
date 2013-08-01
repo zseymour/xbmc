@@ -60,12 +60,12 @@ void CDatabaseManager::Initialize(bool addonsOnly)
   //       before CVideoDatabase.
   { CViewDatabase db; UpdateDatabase(db); }
   { CTextureDatabase db; UpdateDatabase(db); }
-  { CMusicDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseMusic); }
-  { CVideoDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseVideo); }
-  { CPVRDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseTV); }
-  { CEpgDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseEpg); }
   CLog::Log(LOGDEBUG, "%s, creating object database", __FUNCTION__);
   { CObjectDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseObj); }
+  { CMusicDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseMusic); }
+  //{ CVideoDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseVideo); }
+  { CPVRDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseTV); }
+  { CEpgDatabase db; UpdateDatabase(db, &g_advancedSettings.m_databaseEpg); }
   CLog::Log(LOGDEBUG, "%s, updating databases... DONE", __FUNCTION__);
 }
 
