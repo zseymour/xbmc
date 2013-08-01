@@ -41,6 +41,7 @@
 #include "FileItem.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/AdvancedSettings.h"
+#include "object/ObjectDatabase.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
@@ -77,7 +78,8 @@ CVideoDatabase::~CVideoDatabase(void)
 //********************************************************************************************************************************
 bool CVideoDatabase::Open()
 {
-  return CDatabase::Open(g_advancedSettings.m_databaseVideo);
+  //return CDatabase::Open(g_advancedSettings.m_databaseVideo);
+  return g_objectDatabase.Open();
 }
 
 bool CVideoDatabase::CreateTables()
@@ -466,32 +468,7 @@ void CVideoDatabase::CreateViews()
 //********************************************************************************************************************************
 int CVideoDatabase::GetPathId(const CStdString& strPath)
 {
-  CStdString strSQL;
-  try
-  {
-    int idPath=-1;
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
-
-    CStdString strPath1(strPath);
-    if (URIUtils::IsStack(strPath) || strPath.Mid(0,6).Equals("rar://") || strPath.Mid(0,6).Equals("zip://"))
-      URIUtils::GetParentPath(strPath,strPath1);
-
-    URIUtils::AddSlashAtEnd(strPath1);
-
-    strSQL=PrepareSQL("select idPath from path where strPath='%s'",strPath1.c_str());
-    m_pDS->query(strSQL.c_str());
-    if (!m_pDS->eof())
-      idPath = m_pDS->fv("path.idPath").get_asInt();
-
-    m_pDS->close();
-    return idPath;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s unable to getpath (%s)", __FUNCTION__, strSQL.c_str());
-  }
-  return -1;
+   return g_objectDatabase.GetPathId(strPath);
 }
 
 bool CVideoDatabase::GetPaths(set<CStdString> &paths)
