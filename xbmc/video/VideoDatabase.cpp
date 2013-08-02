@@ -208,8 +208,7 @@ void CVideoDatabase::UpdateFileDateAdded(int idFile, const CStdString& strFileNa
     if (!dateAdded.IsValid())
       dateAdded = CDateTime::GetCurrentDateTime();
 
-    strSQL = PrepareSQL("update files set dateAdded='%s' where idFile=%d", dateAdded.GetAsDBDateTime().c_str(), idFile);
-    m_pDS->exec(strSQL.c_str());
+    g_objectDatabase.UpdateDirentDateAdded(idFile, dateAdded);
   }
   catch (...)
   {
@@ -219,84 +218,17 @@ void CVideoDatabase::UpdateFileDateAdded(int idFile, const CStdString& strFileNa
 
 bool CVideoDatabase::SetPathHash(const CStdString &path, const CStdString &hash)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-
-    if (hash.IsEmpty())
-    { // this is an empty folder - we need only add it to the path table
-      // if the path actually exists
-      if (!CDirectory::Exists(path))
-        return false;
-    }
-    int idPath = AddPath(path);
-    if (idPath < 0) return false;
-
-    CStdString strSQL=PrepareSQL("update path set strHash='%s' where idPath=%ld", hash.c_str(), idPath);
-    m_pDS->exec(strSQL.c_str());
-
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s, %s) failed", __FUNCTION__, path.c_str(), hash.c_str());
-  }
-
-  return false;
+  return g_objectDatabase.SetPathHash(path, hash);
 }
 
 bool CVideoDatabase::LinkMovieToTvshow(int idMovie, int idShow, bool bRemove)
 {
-   try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-
-    if (bRemove) // delete link
-    {
-      CStdString strSQL=PrepareSQL("delete from movielinktvshow where idMovie=%i and idShow=%i", idMovie, idShow);
-      m_pDS->exec(strSQL.c_str());
-      return true;
-    }
-
-    CStdString strSQL=PrepareSQL("insert into movielinktvshow (idShow,idMovie) values (%i,%i)", idShow,idMovie);
-    m_pDS->exec(strSQL.c_str());
-
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%i, %i) failed", __FUNCTION__, idMovie, idShow);
-  }
-
-  return false;
+   return g_objectDatabase.LinkObjectToObject(MOVIE_LINK_TVSHOW, idMovie, idShow, "", 0, bRemove);
 }
 
 bool CVideoDatabase::IsLinkedToTvshow(int idMovie)
 {
-   try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-
-    CStdString strSQL=PrepareSQL("select * from movielinktvshow where idMovie=%i", idMovie);
-    m_pDS->query(strSQL.c_str());
-    if (m_pDS->eof())
-    {
-      m_pDS->close();
-      return false;
-    }
-
-    m_pDS->close();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idMovie);
-  }
-
-  return false;
+  return g_objectDatabase.HasRelationship(idMovie, MOVIE_LINK_TVSHOW);
 }
 
 bool CVideoDatabase::GetLinksToTvShow(int idMovie, vector<int>& ids)
