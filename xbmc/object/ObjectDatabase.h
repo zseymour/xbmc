@@ -77,7 +77,7 @@ enum AttributeTypeID
 	USERRATING_NUM,
 	ONLINEID_STR,
 	VIDEO_SUMMARY_STR,
-	VOTES_NUM,
+	VOTES_STR,
 	CONTENTRATING_STR,
 	ONLINERATING_NUM,
 	TAGLINE_STR,
@@ -187,6 +187,7 @@ public:
 	void GetAllAttributesForObject(CObjectInfoTag& tag);
 	void GetAllRelationships(CObjectInfoTag& tag, int idRelationshipType = 0);
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
+	void UpdateObjectName(const int idObject, CStdString name);
 	void DeleteObject(int idObject);
 	void DeleteObject(CStdString strFileNameAndPath, int idObject);
 	bool LinkObjectToDirent(int& idObject, int& idDirent);
@@ -257,6 +258,7 @@ public:
 	void SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date = CDateTime());
 	void IncrementPlayCount(const int idObject, const int idProfile);
 	void UpdateLastPlayed(const int idObject, const int idProfile);
+	CDateTime GetLastPlayed(const int idObject, const int idProfile);
 
 	bool HasContent(const int idObjectType);
 	int GetObjectTypeCount(const int idObjectType);

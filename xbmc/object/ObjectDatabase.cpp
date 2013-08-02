@@ -9,6 +9,7 @@
 #include "dbwrappers/dataset.h"
 #include "utils/URIUtils.h"
 #include "URL.h"
+#include "profiles/ProfilesManager.h"
 
 using namespace std;
 
@@ -88,7 +89,7 @@ bool CObjectDatabase::CreateTables()
 				"  idObject      INTEGER       NOT NULL  PRIMARY KEY AUTOINCREMENT ,\n"
 				"  idObjectType  INTEGER       NOT NULL ,\n"
 				"  stub          VARCHAR(128)  NOT NULL ,\n"
-				"  name          TEXT          NOT NULL ,\n"
+				"  name          TEXT          NULL ,\n"
 				"         \n"
 				"  FOREIGN KEY (idObjectType) REFERENCES objectTypes(idObjectType)\n"
 				");");
@@ -473,8 +474,8 @@ void CObjectDatabase::InsertDefaults()
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
-			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES_NUM, OBJ_VIDEO, "votes",
-			"Online Rating Votes", NUMBER_ATTRIBUTE, 0, 1);
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VOTES_STR, OBJ_VIDEO, "votes",
+			"Online Rating Votes", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
@@ -1526,6 +1527,7 @@ bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
 			details.m_fileNameAndPath = URIUtils::AddFileToFolder(details.m_strPath, details.m_strFile);
 			details.m_url = m_pDS->fv("dUrl").get_asString();
 			details.m_parentPathId = m_pDS->fv("pParent").get_asInt();
+			details.m_fileId = m_pDS->fv("dID").get_asInt();
 
 			details.m_dateAdded.SetFromDBDateTime(m_pDS->fv("dateAdded").get_asString());
 
@@ -1533,8 +1535,10 @@ bool CObjectDatabase::GetObjectDetails(int idObject, CObjectInfoTag& details)
 		m_pDS->close();
 
 		//TODO: Set the profile here
-
+		details.m_profileId = CProfilesManager::Get().GetCurrentProfileId();
 		details.m_playCount = GetPlayCount(idObject, details.m_profileId);
+		GetResumePoint(details);
+		details.m_lastPlayed = GetLastPlayed(idObject, details.m_profileId);
 
 
 	}
@@ -1614,6 +1618,27 @@ int CObjectDatabase::AddObject(const int& idObjectType, const CStdString& stub, 
 		CLog::Log(LOGERROR, "%s unable to addobject (%s)", __FUNCTION__, strSQL.c_str());
 	}
 	return -1;
+}
+
+void CObjectDatabase::UpdateObjectName(const int idObject, CStdString name)
+{
+	if (idObject < 0)
+		return;
+
+	try
+	{
+		if (NULL == m_pDB.get()) return ;
+		if (NULL == m_pDS.get()) return ;
+
+		CStdString strSQL = PrepareSQL("update objects set name='%s' where idObject=%i", name.c_str(), idObject);
+
+		m_pDS->exec(strSQL.c_str());
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
 }
 
 void CObjectDatabase::DeleteObject(int idObject)
@@ -1957,7 +1982,7 @@ bool CObjectDatabase::SetAttribute(const int idObject, CAttributeType attrType, 
 	try
 	{
 
-		if(!isValidAttributeType(idObject, attrType.idAttributeType)) return false;
+		//if(!isValidAttributeType(idObject, attrType.idAttributeType)) return false;
 
 		switch (attrType.type) {
 		case STRING_ATTRIBUTE:
@@ -3447,6 +3472,36 @@ int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
 		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
 	}
 	return -1;
+}
+
+CDateTime CObjectDatabase::GetLastPlayed(const int idObject, const int idProfile)
+{
+	CDateTime lastPlayed;
+	if (idObject < 0 || idProfile < 0)
+		return 0;  // not in db, so not watched
+
+	try
+	{
+		// error!
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		CStdString strSQL = PrepareSQL("select lastPlayed from settings WHERE idObject=%i AND idProfile=%i", idObject, idProfile);
+
+		if (m_pDS->query(strSQL.c_str()))
+		{
+			// there should only ever be one row returned
+			if (m_pDS->num_rows() == 1)
+				lastPlayed.SetFromDBDateTime(m_pDS->fv(0).get_asString());
+			m_pDS->close();
+		}
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+
+	return lastPlayed;
 }
 
 void CObjectDatabase::SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date)
