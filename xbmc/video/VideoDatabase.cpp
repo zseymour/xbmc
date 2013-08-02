@@ -60,6 +60,7 @@
 #include "video/VideoDbUrl.h"
 #include "playlists/SmartPlayList.h"
 #include "utils/GroupUtils.h"
+#include "object/Attribute.h"
 
 using namespace std;
 using namespace dbiplus;
@@ -410,13 +411,17 @@ int CVideoDatabase::AddActor(const CStdString& strActor, const CStdString& thumb
   int idActor = g_objectDatabase.AddObject(OBJ_ACTOR, strActor, strActor);
   if(idActor > 0 && !thumb.IsEmpty())
 	  g_objectDatabase.SetArtForItem(idActor, THUMBNAIL, thumb);
+
+  return idActor;
 }
 
 int CVideoDatabase::AddDirector(const CStdString& strDirector, const CStdString& thumbURLs, const CStdString &thumb)
 {
 	int idDirector = g_objectDatabase.AddObject(OBJ_DIRECTOR, strDirector, strDirector);
-	  if(idDirector > 0 && !thumb.IsEmpty())
-		  g_objectDatabase.SetArtForItem(idDirector, THUMBNAIL, thumb);
+	if(idDirector > 0 && !thumb.IsEmpty())
+		g_objectDatabase.SetArtForItem(idDirector, THUMBNAIL, thumb);
+
+	return idDirector;
 }
 
 
@@ -708,6 +713,7 @@ void CVideoDatabase::DeleteDetailsForTvShow(const CStdString& strPath, int idTvS
 //********************************************************************************************************************************
 void CVideoDatabase::GetMoviesByActor(const CStdString& strActor, CFileItemList& items)
 {
+	//TODO
   Filter filter;
   filter.join  = "LEFT JOIN actorlinkmovie ON actorlinkmovie.idMovie=movieview.idMovie "
                  "LEFT JOIN actors a ON a.idActor=actorlinkmovie.idActor "
@@ -720,6 +726,7 @@ void CVideoDatabase::GetMoviesByActor(const CStdString& strActor, CFileItemList&
 
 void CVideoDatabase::GetTvShowsByActor(const CStdString& strActor, CFileItemList& items)
 {
+	//TODO
   Filter filter;
   filter.join  = "LEFT JOIN actorlinktvshow ON actorlinktvshow.idShow=tvshowview.idShow "
                  "LEFT JOIN actors a ON a.idActor=actorlinktvshow.idActor "
@@ -732,6 +739,7 @@ void CVideoDatabase::GetTvShowsByActor(const CStdString& strActor, CFileItemList
 
 void CVideoDatabase::GetEpisodesByActor(const CStdString& strActor, CFileItemList& items)
 {
+	//TODO
   Filter filter;
   filter.join  = "LEFT JOIN actorlinkepisode ON actorlinkepisode.idEpisode=episodeview.idEpisode "
                  "LEFT JOIN actors a ON a.idActor=actorlinkepisode.idActor "
@@ -744,6 +752,7 @@ void CVideoDatabase::GetEpisodesByActor(const CStdString& strActor, CFileItemLis
 
 void CVideoDatabase::GetMusicVideosByArtist(const CStdString& strArtist, CFileItemList& items)
 {
+	//TODO
   try
   {
     items.Clear();
@@ -776,6 +785,7 @@ void CVideoDatabase::GetMusicVideosByArtist(const CStdString& strArtist, CFileIt
 //********************************************************************************************************************************
 bool CVideoDatabase::GetMovieInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idMovie /* = -1 */)
 {
+	//TODO
   try
   {
     // TODO: Optimize this - no need for all the queries!
@@ -799,6 +809,7 @@ bool CVideoDatabase::GetMovieInfo(const CStdString& strFilenameAndPath, CVideoIn
 //********************************************************************************************************************************
 bool CVideoDatabase::GetTvShowInfo(const CStdString& strPath, CVideoInfoTag& details, int idTvShow /* = -1 */)
 {
+	//TODO
   try
   {
     if (idTvShow < 0)
@@ -820,6 +831,7 @@ bool CVideoDatabase::GetTvShowInfo(const CStdString& strPath, CVideoInfoTag& det
 
 bool CVideoDatabase::GetEpisodeInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idEpisode /* = -1 */)
 {
+	//TODO
   try
   {
     // TODO: Optimize this - no need for all the queries!
@@ -842,6 +854,7 @@ bool CVideoDatabase::GetEpisodeInfo(const CStdString& strFilenameAndPath, CVideo
 
 bool CVideoDatabase::GetMusicVideoInfo(const CStdString& strFilenameAndPath, CVideoInfoTag& details, int idMVideo /* = -1 */)
 {
+	//TODO
   try
   {
     // TODO: Optimize this - no need for all the queries!
@@ -864,6 +877,7 @@ bool CVideoDatabase::GetMusicVideoInfo(const CStdString& strFilenameAndPath, CVi
 
 bool CVideoDatabase::GetSetInfo(int idSet, CVideoInfoTag& details)
 {
+	//TODO
   try
   {
     if (idSet < 0)
@@ -891,32 +905,28 @@ bool CVideoDatabase::GetFileInfo(const CStdString& strFilenameAndPath, CVideoInf
 {
   try
   {
-    if (idFile < 0)
-      idFile = GetFileId(strFilenameAndPath);
-    if (idFile < 0)
-      return false;
+    int idObject = g_objectDatabase.GetObjectId(strFilenameAndPath);
+    if(idObject < 0)
+    	return false;
 
-    CStdString sql = PrepareSQL("SELECT * FROM files "
-                                "JOIN path ON path.idPath = files.idPath "
-                                "LEFT JOIN bookmark ON bookmark.idFile = files.idFile AND bookmark.type = %i "
-                                "WHERE files.idFile = %i", CBookmark::RESUME, idFile);
-    if (!m_pDS->query(sql.c_str()))
-      return false;
+    CObjectInfoTag tag;
+    g_objectDatabase.GetObjectDetails(idObject, tag);
 
-    details.m_iFileId = m_pDS->fv("files.idFile").get_asInt();
-    details.m_strPath = m_pDS->fv("path.strPath").get_asString();
-    CStdString strFileName = m_pDS->fv("files.strFilename").get_asString();
+    if(tag.IsEmpty())
+    	return false;
+
+    details.m_iFileId = tag.m_fileId;
+    details.m_strPath = tag.m_strPath;
+    CStdString strFileName = tag.m_strFile;
     ConstructPath(details.m_strFileNameAndPath, details.m_strPath, strFileName);
-    details.m_playCount = max(details.m_playCount, m_pDS->fv("files.playCount").get_asInt());
+    details.m_playCount = max(details.m_playCount, tag.m_playCount);
     if (!details.m_lastPlayed.IsValid())
-      details.m_lastPlayed.SetFromDBDateTime(m_pDS->fv("files.lastPlayed").get_asString());
+      details.m_lastPlayed = tag.m_lastPlayed;
     if (!details.m_dateAdded.IsValid())
-      details.m_dateAdded.SetFromDBDateTime(m_pDS->fv("files.dateAdded").get_asString());
+      details.m_dateAdded = tag.m_dateAdded;
     if (!details.m_resumePoint.IsSet())
     {
-      details.m_resumePoint.timeInSeconds = m_pDS->fv("bookmark.timeInSeconds").get_asInt();
-      details.m_resumePoint.totalTimeInSeconds = m_pDS->fv("bookmark.totalTimeInSeconds").get_asInt();
-      details.m_resumePoint.type = CBookmark::RESUME;
+    	tag.m_resumePoint;
     }
 
     return !details.IsEmpty();
@@ -932,7 +942,7 @@ void CVideoDatabase::AddGenreAndDirectorsAndStudios(const CVideoInfoTag& details
 {
   // add all directors
   for (unsigned int i = 0; i < details.m_director.size(); i++)
-    vecDirectors.push_back(AddActor(details.m_director[i],""));
+    vecDirectors.push_back(AddDirector(details.m_director[i],""));
 
   // add all genres
   for (unsigned int i = 0; i < details.m_genre.size(); i++)
@@ -1063,37 +1073,55 @@ int CVideoDatabase::SetDetailsForMovie(const CStdString& strFilenameAndPath, con
 
     SetArtForItem(idMovie, "movie", artwork);
 
-    // query DB for any movies matching imdbid and year
-    CStdString strSQL = PrepareSQL("select files.playCount, files.lastPlayed from movie,files where files.idFile=movie.idFile and movie.c%02d='%s' and movie.c%02d=%i and movie.idMovie!=%i and files.playCount > 0", VIDEODB_ID_IDENT, details.m_strIMDBNumber.c_str(), VIDEODB_ID_YEAR, details.m_iYear, idMovie);
-    m_pDS->query(strSQL.c_str());
-	
-    if (!m_pDS->eof())
-    {
-      int playCount = m_pDS->fv("files.playCount").get_asInt();
 
-      CDateTime lastPlayed;
-      lastPlayed.SetFromDBDateTime(m_pDS->fv("files.lastPlayed").get_asString());
-
-      int idFile = GetFileId(strFilenameAndPath);
-
-      // update with playCount and lastPlayed
-      strSQL = PrepareSQL("update files set playCount=%i,lastPlayed='%s' where idFile=%i", playCount, lastPlayed.GetAsDBDateTime().c_str(), idFile);
-      m_pDS->exec(strSQL.c_str());
-    }
-
-    m_pDS->close();
 
     // update our movie table (we know it was added already above)
     // and insert the new row
-    CStdString sql = "update movie set " + GetValueString(details, VIDEODB_ID_MIN, VIDEODB_ID_MAX, DbMovieOffsets);
-    if (idSet > 0)
-      sql += PrepareSQL(", idSet = %i", idSet);
-    else
-      sql += ", idSet = NULL";
-    sql += PrepareSQL(" where idMovie=%i", idMovie);
-    m_pDS->exec(sql.c_str());
-    CommitTransaction();
+    map<int, CAttribute> attrs;
+    CAttribute filename = CAttribute();
+    filename.setStringValue(details.m_strFile);
+    attrs.insert(make_pair(FILENAME_STR, filename));
 
+    CAttribute plot = CAttribute();
+    plot.setStringValue(details.m_strPlot);
+    attrs.insert(make_pair(MOVIE_PLOT_STR, plot));
+
+    CAttribute mpaa = CAttribute();
+    mpaa.setStringValue(details.m_strMPAARating);
+    attrs.insert(make_pair(CONTENTRATING_STR, mpaa));
+
+    CAttribute tagline = CAttribute();
+    tagline.setStringValue(details.m_strTagLine);
+    attrs.insert(make_pair(TAGLINE_STR, tagline));
+
+    CAttribute votes = CAttribute();
+    tagline.setStringValue(details.m_strVotes);
+    attrs.insert(make_pair(VOTES_STR, votes));
+
+    //For numeric types, we need to prefetch the AttributeType
+    //to insure we convert precision correctly.
+    CAttributeType ratingType;
+    g_objectDatabase.GetAttributeType(USERRATING_NUM, ratingType);
+    CAttribute rating = CAttribute(ratingType);
+    rating.setNumericValue(details.m_fRating);
+    attrs.insert(make_pair(ratingType.idAttributeType, rating));
+
+    CAttribute year = CAttribute();
+    year.setStringValue(details.m_iYear);
+    attrs.insert(make_pair(RELEASEDATE_STR, year));
+
+    CAttribute imdbNumber = CAttribute();
+    imdbNumber.setStringValue(details.m_strIMDBNumber);
+    attrs.insert(make_pair(ONLINEID_STR, imdbNumber));
+
+    g_objectDatabase.AddAttributesForObject(idMovie, attrs);
+
+    g_objectDatabase.UpdateObjectName(idMovie, details.m_strTitle);
+
+    if (idSet > 0)
+      g_objectDatabase.LinkObjectToObject(MOVIESET_HAS_MOVIE, idMovie, idSet);
+
+    CommitTransaction();
     return idMovie;
   }
   catch (...)
