@@ -10,8 +10,12 @@
 #include "utils/URIUtils.h"
 #include "URL.h"
 #include "profiles/ProfilesManager.h"
+#include "filesystem/StackDirectory.h"
+#include "filesystem/MultiPathDirectory.h"
+#include "filesystem/Directory.h"
 
 using namespace std;
+using namespace XFILE;
 
 CObjectDatabase::CObjectDatabase(void)
 {
@@ -468,6 +472,18 @@ void CObjectDatabase::InsertDefaults()
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENT_SORTTITLE_STR, OBJ_CONTENT, "sorttitle",
+			"Sort Title", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", CONTENT_ORIGINALTITLE_STR, OBJ_CONTENT, "originaltitle",
+			"Original Title", STRING_ATTRIBUTE, 0, 1);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
 			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", VIDEO_SUMMARY_STR, OBJ_VIDEO, "summary",
 			"Summary", STRING_ATTRIBUTE, 0, 1);
 	m_pDS->exec(sql.c_str());
@@ -504,8 +520,56 @@ void CObjectDatabase::InsertDefaults()
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
 			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_PLOTOUTLINE_STR, OBJ_MOVIE, "plotoutline",
+			"Plot Outline", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_RANKING_NUM, OBJ_MOVIE, "movierank",
+			"Movie Rank", NUMBER_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", MOVIE_TRAILER_URL_STR, OBJ_MOVIE, "trailer",
+			"Trailer", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TVSHOW_EPISODEGUIDE_STR, OBJ_TVSHOW, "episodeguide",
+			"Episode Guide", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", TVSHOW_STATUS_STR, OBJ_TVSHOW, "status",
+			"Status", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
 			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PLOT_STR, OBJ_EPISODE, "plot",
 			"Plot", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_PRODUCTIONCODE_STR, OBJ_EPISODE, "productioncode",
+			"Production Code", STRING_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_SEASONSORT_NUM, OBJ_EPISODE, "seasonsort",
+			"Season Sort", NUMBER_ATTRIBUTE, 0, 0);
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
+			"name, dataType, dataPrecision, inheritable) "
+			"VALUES (%i, %i, '%s', '%s', %i, %i, %i)", EPISODE_EPISODESORT_NUM, OBJ_EPISODE, "episodesort",
+			"Episode Sort", NUMBER_ATTRIBUTE, 0, 0);
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO attributeTypes (idAttributeType, idObjectType, stub, "
@@ -680,6 +744,10 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
+				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_MUSICVIDEO, OBJ_ALBUM, OBJ_MUSICVIDEO, "album_has_musicvideo");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, sequenced)"
 				" VALUES (%i, %i, %i,'%s', 1)", ALBUM_HAS_GENRE, OBJ_ALBUM, OBJ_GENRE, "album_has_genre");
 		m_pDS->exec(sql.c_str());
 
@@ -721,7 +789,14 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 }
 
-
+void CObjectDatabase::ConstructPath(CStdString& strDest, const CStdString& strPath, const CStdString& strFileName)
+{
+  if (URIUtils::IsStack(strFileName) ||
+      URIUtils::IsInArchive(strFileName) || URIUtils::IsPlugin(strPath))
+    strDest = strFileName;
+  else
+    strDest = URIUtils::AddFileToFolder(strPath, strFileName);
+}
 
 bool CObjectDatabase::GetChildObjectTypes(int idObjectType, std::vector<int>& ids)
 {
@@ -1135,6 +1210,38 @@ int CObjectDatabase::GetPathId(const CStdString& strPath)
 	return -1;
 }
 
+bool CObjectDatabase::GetFilePathById(const int idObject, CStdString& path)
+{
+	CStdString sql;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		sql = PrepareSQL("SELECT pPath, dFilename FROM viewObjectDirentAll WHERE oID=%i", idObject);
+
+
+
+		if(!m_pDS->eof())
+		{
+			CStdString strFile = m_pDS->fv("dFilename").get_asString();
+			CStdString strPath=m_pDS->fv("pPath").get_asString();
+
+			ConstructPath(path, strPath, strFile);
+
+		}
+		m_pDS->close();
+		return true;
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed (%s)", __FUNCTION__, sql.c_str());
+	}
+
+	return false;
+}
+
 bool CObjectDatabase::GetPaths(set<CStdString> &paths, int idObjectType)
 {
 	CStdString sql;
@@ -1257,8 +1364,8 @@ bool CObjectDatabase::SetPathHash(const CStdString &path, const CStdString &hash
 		if (hash.IsEmpty())
 		{ // this is an empty folder - we need only add it to the path table
 			// if the path actually exists
-			//      if (!CDirectory::Exists(path))
-			//        return false;
+			if (!CDirectory::Exists(path))
+				return false;
 		}
 		int idPath = AddPath(path);
 		if (idPath < 0) return false;
@@ -1274,6 +1381,11 @@ bool CObjectDatabase::SetPathHash(const CStdString &path, const CStdString &hash
 	}
 
 	return false;
+}
+
+void CObjectDatabase::InvalidatePathHash(const CStdString& strPath)
+{
+	SetPathHash(strPath, "");
 }
 
 void CObjectDatabase::SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName)
@@ -1641,7 +1753,7 @@ void CObjectDatabase::UpdateObjectName(const int idObject, CStdString name)
 	}
 }
 
-void CObjectDatabase::DeleteObject(int idObject)
+void CObjectDatabase::DeleteObject(int idObject, bool bKeep)
 {
 	if(idObject < 0)
 		return;
@@ -1650,10 +1762,12 @@ void CObjectDatabase::DeleteObject(int idObject)
 	if(GetObjectPath(idObject, fileNameAndPath))
 	{
 		DeleteObject(fileNameAndPath, idObject);
+	} else {
+		DeleteObject("", idObject, bKeep);
 	}
 }
 
-void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject)
+void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject, bool bKeep)
 {
 	CStdString strSQL;
 	try
@@ -1673,12 +1787,21 @@ void CObjectDatabase::DeleteObject(CStdString strFileNameAndPath, int idObject)
 		DeleteObjectLinks(idObject);
 		RemoveObjectDirentLink(idObject);
 
-		strSQL=PrepareSQL("delete from objects where idObject=i%", idObject);
-		m_pDS->exec(strSQL.c_str());
+		if(!bKeep)
+		{
+			strSQL=PrepareSQL("delete from objects where idObject=i%", idObject);
+			m_pDS->exec(strSQL.c_str());
+		}
 
+		 CStdString strPath, strFileName;
+		 SplitPath(strFileNameAndPath,strPath,strFileName);
+		 InvalidatePathHash(strPath);
+
+		CommitTransaction();
 	}
 	catch (...)
 	{
+		RollbackTransaction();
 		CLog::Log(LOGERROR, "%s unable to deleteobject (%s)", __FUNCTION__, strSQL.c_str());
 	}
 }
@@ -1749,6 +1872,11 @@ int CObjectDatabase::GetObjectType(int idObject)
 		CLog::Log(LOGERROR, "%s unable to getobjecttype (%s)", __FUNCTION__, strSQL.c_str());
 	}
 	return -1;
+}
+
+CStdString CObjectDatabase::GetObjectName(int idObject)
+{
+	return GetSingleValue("objects", "name", PrepareSQL("idObject=%i",idObject));
 }
 
 int CObjectDatabase::GetObjectId(CStdString strFileNameAndPath)
@@ -2433,6 +2561,26 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 	return false;
 }
 
+bool CObjectDatabase::HasRelations(const int idRelationshipType)
+{
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		m_pDS->query(PrepareSQL("SELECT * FROM relationships WHERE idRelationshipType=%i", idRelationshipType).c_str());
+
+		bool bResult = (m_pDS->num_rows() > 0);
+		m_pDS->close();
+		return bResult;
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+	return false;
+}
+
 bool CObjectDatabase::HasRelationship(const int idObject, const int idRelationshipType)
 {
 	CStdString strSQL;
@@ -2454,10 +2602,6 @@ bool CObjectDatabase::HasRelationship(const int idObject, const int idRelationsh
 		}
 
 		m_pDS2->close();
-		return true;
-
-
-
 		return true;
 
 	}
@@ -2858,46 +3002,49 @@ void CObjectDatabase::SetStackTimes(const CStdString& filePath, vector<int> &tim
 	}
 }
 
-void CObjectDatabase::GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend)
+void CObjectDatabase::GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend, long partNumber)
 {
 	try
 	{
-		//    if (URIUtils::IsStack(strFilenameAndPath) && CFileItem(CStackDirectory::GetFirstStackedFile(strFilenameAndPath),false).IsDVDImage())
-		//    {
-		//      CStackDirectory dir;
-		//      CFileItemList fileList;
-		//      dir.GetDirectory(strFilenameAndPath, fileList);
-		//      if (!bAppend)
-		//        bookmarks.clear();
-		//      for (int i = fileList.Size() - 1; i >= 0; i--) // put the bookmarks of the highest part first in the list
-		//        GetBookMarksForFile(fileList[i]->GetPath(), bookmarks, type, true, (i+1));
-		//    }
-		//    else
-		//    {
-		int idFile = AddDirEnt(strFilenameAndPath);
-		if (idFile < 0) return ;
-		if (!bAppend)
-			bookmarks.erase(bookmarks.begin(), bookmarks.end());
-		if (NULL == m_pDB.get()) return ;
-		if (NULL == m_pDS.get()) return ;
-
-		CStdString strSQL=PrepareSQL("select * from bookmark where idDirent=%i and idProfile=%i and type=%i order by timeInSeconds", idFile, idProfile, (int)type);
-		m_pDS->query( strSQL.c_str() );
-		while (!m_pDS->eof())
+		if (URIUtils::IsStack(strFilenameAndPath) && CFileItem(CStackDirectory::GetFirstStackedFile(strFilenameAndPath),false).IsDVDImage())
 		{
-			CBookmark bookmark;
-			bookmark.timeInSeconds = m_pDS->fv("timeInSeconds").get_asDouble();
-			bookmark.totalTimeInSeconds = m_pDS->fv("totalTimeInSeconds").get_asDouble();
-			bookmark.thumbNailImage = m_pDS->fv("thumbnailImage").get_asString();
-			bookmark.playerState = m_pDS->fv("playerState").get_asString();
-			bookmark.player = m_pDS->fv("player").get_asString();
-			bookmark.type = type;
-			bookmarks.push_back(bookmark);
-			m_pDS->next();
+			CStackDirectory dir;
+			CFileItemList fileList;
+			dir.GetDirectory(strFilenameAndPath, fileList);
+			if (!bAppend)
+				bookmarks.clear();
+			for (int i = fileList.Size() - 1; i >= 0; i--) // put the bookmarks of the highest part first in the list
+				GetBookMarksForFile(fileList[i]->GetPath(), idProfile, bookmarks, type, true, (i+1));
 		}
-		//sort(bookmarks.begin(), bookmarks.end(), SortBookmarks);
-		m_pDS->close();
-		//  }
+		else
+		{
+			int idFile = AddDirEnt(strFilenameAndPath);
+			if (idFile < 0) return ;
+			if (!bAppend)
+				bookmarks.erase(bookmarks.begin(), bookmarks.end());
+			if (NULL == m_pDB.get()) return ;
+			if (NULL == m_pDS.get()) return ;
+
+			CStdString strSQL=PrepareSQL("select * from bookmark where idDirent=%i and idProfile=%i and type=%i order by timeInSeconds", idFile, idProfile, (int)type);
+			m_pDS->query( strSQL.c_str() );
+			while (!m_pDS->eof())
+			{
+				CBookmark bookmark;
+				bookmark.timeInSeconds = m_pDS->fv("timeInSeconds").get_asDouble();
+				bookmark.partNumber = partNumber;
+				bookmark.totalTimeInSeconds = m_pDS->fv("totalTimeInSeconds").get_asDouble();
+				bookmark.thumbNailImage = m_pDS->fv("thumbnailImage").get_asString();
+				bookmark.playerState = m_pDS->fv("playerState").get_asString();
+				bookmark.player = m_pDS->fv("player").get_asString();
+				bookmark.type = type;
+
+
+				bookmarks.push_back(bookmark);
+				m_pDS->next();
+			}
+			//sort(bookmarks.begin(), bookmarks.end(), SortBookmarks);
+			m_pDS->close();
+		}
 	}
 	catch (...)
 	{
@@ -3448,6 +3595,19 @@ bool CObjectDatabase::ParseVideoSettings(CStdString xml, CVideoSettings& setting
 	}
 }
 
+void CObjectDatabase::EraseVideoSettings()
+{
+	try
+	{
+		CLog::Log(LOGINFO, "Deleting settings information for all movies");
+		m_pDS->exec("update dirents set settings=NULL");
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
+	}
+}
+
 int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
 {
 	if (idObject < 0 || idProfile < 0)
@@ -3475,6 +3635,13 @@ int CObjectDatabase::GetPlayCount(const int idObject, const int idProfile)
 		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
 	}
 	return -1;
+}
+
+int CObjectDatabase::GetPlayCount(const CFileItem& item, const int idProfile)
+{
+	int idObject = GetObjectId(item.GetPath());
+
+	return GetPlayCount(idObject, idProfile);
 }
 
 CDateTime CObjectDatabase::GetLastPlayed(const int idObject, const int idProfile)
@@ -3554,6 +3721,12 @@ void CObjectDatabase::SetPlayCount(const int idObject, const int idProfile, int 
 	{
 		CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
 	}
+}
+
+void CObjectDatabase::SetPlayCount(const CFileItem& item, int idProfile, int count, const CDateTime& date)
+{
+	int idObject = GetObjectId(item.GetPath());
+	SetPlayCount(idObject, idProfile, count, date);
 }
 
 void CObjectDatabase::IncrementPlayCount(const int idObject, const int idProfile)

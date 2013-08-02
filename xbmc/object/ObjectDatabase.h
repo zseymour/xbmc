@@ -76,13 +76,23 @@ enum AttributeTypeID
 	RELEASEDATE_STR,
 	USERRATING_NUM,
 	ONLINEID_STR,
+	CONTENT_SORTTITLE_STR,
+	CONTENT_ORIGINALTITLE_STR,
 	VIDEO_SUMMARY_STR,
 	VOTES_STR,
 	CONTENTRATING_STR,
 	ONLINERATING_NUM,
 	TAGLINE_STR,
 	MOVIE_PLOT_STR,
+	MOVIE_PLOTOUTLINE_STR,
+	MOVIE_RANKING_NUM,
+	MOVIE_TRAILER_URL_STR,
+	TVSHOW_STATUS_STR,
+	TVSHOW_EPISODEGUIDE_STR,
 	EPISODE_PLOT_STR,
+	EPISODE_PRODUCTIONCODE_STR,
+	EPISODE_SEASONSORT_NUM,
+	EPISODE_EPISODESORT_NUM,
 	HEIGHT_NUM,
 	WIDTH_NUM,
 	BIOGRAPHY_STR,
@@ -123,6 +133,7 @@ enum RelationshipTypeID
 	MOVIESET_HAS_MOVIE,
 	ALBUM_HAS_STUDIO,
 	ALBUM_HAS_SONG,
+	ALBUM_HAS_MUSICVIDEO,
 	ALBUM_HAS_GENRE,
 	REPO_HAS_ADDON
 };
@@ -146,6 +157,46 @@ public:
 	virtual ~CObjectDatabase();
 	virtual bool Open();
 
+	static int ArtworkTypeToID(CStdString type)
+	  {
+		  if(type=="thumbnail")
+		  {
+			  return THUMBNAIL;
+		  }
+		  else if(type=="fanart")
+		  {
+			  return FANART;
+		  }
+		  else if(type=="banner")
+		  {
+		      return BANNER;
+		  }
+		  else if(type=="landscape")
+		  {
+			  return LANDSCAPE;
+		  }
+		  else if(type=="clearlogo")
+		  {
+			  return CLEARLOGO;
+		  }
+		  else if(type=="clearart")
+		  {
+			  return CLEARART;
+		  }
+		  else if(type=="discart")
+		  {
+			  return DISCART;
+		  }
+		  else if(type=="cdart")
+		  {
+			  return CDART;
+		  }
+		  else
+		  {
+			  return -1;
+		  }
+	  }
+
 	bool GetChildObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetParentObjectTypes(int idObjectType, std::vector<int>& ids);
 	bool GetAllDescendentObjectTypes(int idObjectType, std::vector<int>& ids);
@@ -164,11 +215,13 @@ public:
 
 	int AddPath(const CStdString& strPath);
 	int GetPathId(const CStdString& strPath);
+	bool GetFilePathById(const int idObject, CStdString& path);
 	bool GetSubPaths(const CStdString &basepath, std::vector< std::pair<int,std::string> >& subpaths);
 	bool GetPaths(std::set<CStdString> &paths, int idObjectType);
 	bool GetPathsForObject(const int idObject, std::set<int>& paths);
 	bool GetPathHash(const CStdString &path, CStdString &hash);
 	bool SetPathHash(const CStdString &path, const CStdString &hash);
+	void InvalidatePathHash(const CStdString& strPath);
 	void SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName);
 
 	int AddScraper(const CStdString& scraper, const CStdString& content);
@@ -184,12 +237,13 @@ public:
 
 	bool GetObjectDetails(int idObject, CObjectInfoTag& details);
 	bool GetObjectDetails(CObjectInfoTag& details);
+	CStdString GetObjectName(int idObject);
 	void GetAllAttributesForObject(CObjectInfoTag& tag);
 	void GetAllRelationships(CObjectInfoTag& tag, int idRelationshipType = 0);
 	int AddObject(const int& idObjectType, const CStdString& stub, const CStdString& name);
 	void UpdateObjectName(const int idObject, CStdString name);
-	void DeleteObject(int idObject);
-	void DeleteObject(CStdString strFileNameAndPath, int idObject);
+	void DeleteObject(int idObject, bool bKeep = false);
+	void DeleteObject(CStdString strFileNameAndPath, int idObject, bool bKeep = false);
 	bool LinkObjectToDirent(int& idObject, int& idDirent);
 	void RemoveObjectDirentLink(int idObject);
 	int GetObjectType(int idObject);
@@ -217,6 +271,7 @@ public:
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
 	bool HasRelationship(const int idObject, const int idRelationshipType = 0);
+	bool HasRelations(const int idRelationshipType);
 	int GetNextSequenceIndex(const int idObject1, const int idRelationshipType);
 
 
@@ -234,7 +289,7 @@ public:
 	bool GetStackTimes(const CStdString &filePath, std::vector<int> &times);
 	void SetStackTimes(const CStdString& filePath, std::vector<int> &times);
 
-	void GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend);
+	void GetBookMarksForFile(const CStdString& strFilenameAndPath, int idProfile, VECBOOKMARKS& bookmarks, CBookmark::EType type /*= CBookmark::STANDARD*/, bool bAppend=false, long partNumber=0);
 	bool GetResumeBookMark(const CStdString& strFilenameAndPath, int idProfile, CBookmark &bookmark);
 	bool GetResumePoint(CObjectInfoTag& tag);
 	void DeleteResumeBookMark(const CStdString &strFilenameAndPath, int idProfile);
@@ -253,9 +308,12 @@ public:
 	void SetVideoSettingsForFileId(const CStdString settingsXML, int idFile);
 	bool GetVideoSettings(CVideoSettings& settings, int idFile);
 	bool GetVideoSettings(CObjectInfoTag& tag);
+	void EraseVideoSettings();
 
 	int GetPlayCount(const int idObject, const int idProfile);
+	int GetPlayCount(const CFileItem& item, const int idProfile);
 	void SetPlayCount(const int idObject, const int idProfile, int count, const CDateTime &date = CDateTime());
+	void SetPlayCount(const CFileItem& item, int idProfile, int count, const CDateTime& date = CDateTime());
 	void IncrementPlayCount(const int idObject, const int idProfile);
 	void UpdateLastPlayed(const int idObject, const int idProfile);
 	CDateTime GetLastPlayed(const int idObject, const int idProfile);
@@ -268,6 +326,7 @@ private:
 	virtual bool CreateTables();
 	virtual void CreateViews();
 	virtual void InsertDefaults();
+	void ConstructPath(CStdString& strDest, const CStdString& strPath, const CStdString& strFileName);
 	bool isValidAttributeType(int idObject, int idAttributeType);
 	bool isValidRelationshipType(int idRelationshipType, int idObject1, int idObject2);
 	bool isValidArtworkType(int idObject, int idArtworkType);
