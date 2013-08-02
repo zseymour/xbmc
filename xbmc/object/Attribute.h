@@ -41,6 +41,7 @@ public:
 	int getRawIntValue();
 	CStdString getName();
 	void setStringValue(CStdString newValue);
+	void setStringValue(int newValue);
 	void setNumericValue(float newValue);
 	void setNumericValue(int newValue);
 	void setType(CAttributeType newType);

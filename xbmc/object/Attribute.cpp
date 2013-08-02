@@ -77,6 +77,13 @@ void CAttribute::setStringValue(CStdString newValue)
 	strValue = newValue;
 }
 
+void CAttribute::setStringValue(int newValue)
+{
+	intValue = newValue;
+	strValue = CStdString();
+	strValue.AppendFormat("%i",newValue);
+}
+
 void CAttribute::setType(CAttributeType newType)
 {
 	type = newType;
