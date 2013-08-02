@@ -683,6 +683,8 @@ public:
     }
   }
 
+
+
   void SetArtForItem(int mediaId, const std::string &mediaType, const std::string &artType, const std::string &url);
   void SetArtForItem(int mediaId, const std::string &mediaType, const std::map<std::string, std::string> &art);
   bool GetArtForItem(int mediaId, const std::string &mediaType, std::map<std::string, std::string> &art);
@@ -723,6 +725,7 @@ protected:
   int AddGenre(const CStdString& strGenre1);
   int AddActor(const CStdString& strActor, const CStdString& thumbURL, const CStdString &thumb = "");
   int AddDirector(const CStdString& strDirector, const CStdString& thumbURLs, const CStdString &thumb = "");
+  int AddArtist(const CStdString& strArtist, const CStdString& thumbURLs, const CStdString &thumb="");
   int AddCountry(const CStdString& strCountry);
   int AddStudio(const CStdString& strStudio1);
 
