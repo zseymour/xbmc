@@ -299,8 +299,11 @@ void CObjectDatabase::CreateViews()
 			"       o.stub             AS oStub,\n"
 			"       IFNULL(o.name,\n"
 			"               o.stub)    AS oName,\n"
+			"       o.idObjectType     as oType,\n"
+			"       p.idPath           AS pID,\n"
 			"       p.path             AS pPath,\n"
 			"		p.idParent         AS pParent,\n"
+			"       p.noUpdate         AS pNoUpdate,\n"
 			"       d.filename	  AS dFileName,\n"
 			"       IFNULL(d.filename,\n"
 			"               d.url)     AS dUrl,\n"
@@ -1114,6 +1117,45 @@ int CObjectDatabase::GetPathId(const CStdString& strPath)
 	return -1;
 }
 
+bool CObjectDatabase::GetPaths(set<CStdString> &paths, int idObjectType)
+{
+	CStdString sql;
+	try
+	  {
+	    if (NULL == m_pDB.get()) return false;
+	    if (NULL == m_pDS.get()) return false;
+
+	    paths.clear();
+	    vector<int> ids;
+	    GetAllDescendentObjectTypes(idObjectType, ids);
+
+	    sql = PrepareSQL("SELECT pPath, pNoUpdate FROM viewObjectDirentAll WHERE pPath NOT like 'multipath://%%'"
+	    		" AND pID NOT IN (select idPath from dirents where filename like 'video_ts.ifo')" //omit dvd folders
+	    		" AND pID NOT IN (select idPath from dirents where filename like 'index.bdmv')" //omit blu-ray folders
+	    		" AND oType IN (%s)"
+	    		" ORDER BY pPath", StringUtils::Join(ids, ",").c_str());
+
+	    if(!m_pDS->query(sql.c_str()))
+	    	return false;
+
+	    while(!m_pDS->eof())
+	    {
+	    	if (!m_pDS->fv("pNoUpdate").get_asBool())
+	    		paths.insert(m_pDS->fv("pPath").get_asString());
+	    	m_pDS->next();
+	    }
+	    m_pDS->close();
+	    return true;
+
+	  }
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s failed (%s)", __FUNCTION__, sql.c_str());
+	}
+
+	return false;
+}
+
 bool CObjectDatabase::GetSubPaths(const CStdString &basepath, vector< pair<int,string> >& subpaths)
 {
   CStdString sql;
@@ -1139,6 +1181,30 @@ bool CObjectDatabase::GetSubPaths(const CStdString &basepath, vector< pair<int,s
     CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, sql.c_str());
   }
   return false;
+}
+
+bool CObjectDatabase::GetPathsForObject(const int idObject, set<int>& paths)
+{
+	CStdString strSQL;
+	  try
+	  {
+	    if (NULL == m_pDB.get()) return false;
+	    if (NULL == m_pDS.get()) return false;
+	    strSQL = PrepareSQL("SELECT DISTINCT pID FROM viewObjectDirentAll WHERE oID=%i",idObject);
+	    m_pDS->query(strSQL.c_str());
+	    while (!m_pDS->eof())
+	    {
+	      paths.insert(m_pDS->fv(0).get_asInt());
+	      m_pDS->next();
+	    }
+	    m_pDS->close();
+	    return true;
+	  }
+	  catch (...)
+	  {
+	    CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, strSQL.c_str());
+	  }
+	  return false;
 }
 
 bool CObjectDatabase::GetPathHash(const CStdString &path, CStdString &hash)
@@ -1313,6 +1379,11 @@ bool CObjectDatabase::ScraperInUse(const int idScraper)
 	return false;
 }
 
+int CObjectDatabase::AddDirEnt(const CFileItem& item)
+{
+	return AddDirEnt(item.GetPath());
+}
+
 int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
 {
 
@@ -1352,6 +1423,30 @@ int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
 	}
 	return -1;
 
+}
+
+void CObjectDatabase::UpdateDirentDateAdded(const int idDirent, CDateTime dateAdded)
+{
+	if (idDirent < 0)
+		return;
+
+	if (!dateAdded.IsValid())
+	      dateAdded = CDateTime::GetCurrentDateTime();
+
+	CStdString strSQL = "";
+	try
+	{
+		if (NULL == m_pDB.get()) return;
+		if (NULL == m_pDS.get()) return;
+
+
+		strSQL = PrepareSQL("update dirents set dateAdded='%s' where idDirent=%d", dateAdded.GetAsDBDateTime().c_str(), idDirent);
+		m_pDS->exec(strSQL.c_str());
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to update dateadded for file (%s)", __FUNCTION__, strSQL.c_str());
+	}
 }
 
 bool CObjectDatabase::GetObjectDetails(CObjectInfoTag& details)

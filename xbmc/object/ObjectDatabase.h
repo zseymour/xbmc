@@ -21,6 +21,7 @@
 #include "Attribute.h"
 #include "Relationship.h"
 #include "ObjectInfoTag.h"
+#include "FileItem.h"
 
 #include <memory>
 #include <set>
@@ -160,6 +161,8 @@ public:
 	int AddPath(const CStdString& strPath);
 	int GetPathId(const CStdString& strPath);
 	bool GetSubPaths(const CStdString &basepath, std::vector< std::pair<int,std::string> >& subpaths);
+	bool GetPaths(std::set<CStdString> &paths, int idObjectType);
+	bool GetPathsForObject(const int idObject, std::set<int>& paths);
 	bool GetPathHash(const CStdString &path, CStdString &hash);
 	bool SetPathHash(const CStdString &path, const CStdString &hash);
 	void SplitPath(const CStdString& strFileNameAndPath, CStdString& strPath, CStdString& strFileName);
@@ -171,6 +174,8 @@ public:
 	bool ScraperInUse(const int idScraper);
 
 	int AddDirEnt(const CStdString& strFileNameAndPath);
+	int AddDirEnt(const CFileItem& item);
+	void UpdateDirentDateAdded(const int idDirent, CDateTime dateAdded);
 
 	bool GetObjectDetails(int idObject, CObjectInfoTag& details);
 	bool GetObjectDetails(CObjectInfoTag& details);
