@@ -105,6 +105,7 @@ enum RelationshipTypeID
 	MOVIE_HAS_DIRECTOR,
 	MOVIE_HAS_WRITER,
 	MOVIE_HAS_STUDIO,
+	MOVIE_LINK_TVSHOW,
 	TVSHOW_HAS_GENRE,
 	TVSHOW_HAS_ACTOR,
 	TVSHOW_HAS_STUDIO,
@@ -205,11 +206,12 @@ public:
 	int GetRelationshipTypeId(const CStdString stub);
 	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
-	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0);
+	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0, bool remove = false);
 	void DeleteObjectLinks(int idObject);
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
+	bool HasRelationship(const int idObject, const int idRelationshipType = 0);
 	int GetNextSequenceIndex(const int idObject1, const int idRelationshipType);
 
 

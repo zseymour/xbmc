@@ -606,6 +606,10 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+				" VALUES (%i, %i, %i,'%s')", MOVIE_LINK_TVSHOW, OBJ_MOVIE, OBJ_TVSHOW, "movie_link_tvshow");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_GENRE, OBJ_TVSHOW, OBJ_GENRE, "tvshow_has_genre");
 	m_pDS->exec(sql.c_str());
 
@@ -2225,7 +2229,7 @@ int CObjectDatabase::GetRelationshipId(int idRelationshipType, int idObject1, in
 	return -1;
 }
 
-int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index)
+int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index, bool remove)
 {
 	CStdString strSQL;
 	try
@@ -2237,6 +2241,13 @@ int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, i
 
 		if(idRelationship >= 0)
 			return idRelationship;
+
+		if(remove)
+		{
+			strSQL=PrepareSQL("DELETE FROM relationships WHERE idRelationshipType=%i AND idObject1=%i AND idObject2=%i",idRelationshipType,idObject1,idObject2);
+			m_pDS->exec(strSQL.c_str());
+			return true;
+		}
 
 
 		if(isValidRelationshipType(idRelationshipType, idObject1, idObject2))
@@ -2312,6 +2323,42 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 		}
 
 		m_pDS2->close();
+		return true;
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, strSQL.c_str());
+	}
+
+	return false;
+}
+
+bool CObjectDatabase::HasRelationship(const int idObject, const int idRelationshipType)
+{
+	CStdString strSQL;
+	try
+	{
+		if (NULL == m_pDB.get()) return false;
+		if (NULL == m_pDS.get()) return false;
+
+		strSQL=PrepareSQL("SELECT * FROM viewRelationshipsAll WHERE (o1ID=%i OR o2ID=%i)", idObject, idObject);
+
+		if(idRelationshipType > 0)
+			strSQL.AppendFormat(" AND rtID=%i", idRelationshipType);
+
+		m_pDS2->query(strSQL.c_str());
+		if (m_pDS2->eof())
+		{
+			m_pDS2->close();
+			return false;
+		}
+
+		m_pDS2->close();
+		return true;
+
+
+
 		return true;
 
 	}
