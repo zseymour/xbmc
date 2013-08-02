@@ -722,6 +722,7 @@ protected:
   int AddToTable(const CStdString& table, const CStdString& firstField, const CStdString& secondField, const CStdString& value);
   int AddGenre(const CStdString& strGenre1);
   int AddActor(const CStdString& strActor, const CStdString& thumbURL, const CStdString &thumb = "");
+  int AddDirector(const CStdString& strDirector, const CStdString& thumbURLs, const CStdString &thumb = "");
   int AddCountry(const CStdString& strCountry);
   int AddStudio(const CStdString& strStudio1);
 
