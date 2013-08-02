@@ -1095,7 +1095,7 @@ int CVideoDatabase::SetDetailsForMovie(const CStdString& strFilenameAndPath, con
     attrs.insert(make_pair(TAGLINE_STR, tagline));
 
     CAttribute votes = CAttribute();
-    tagline.setStringValue(details.m_strVotes);
+    votes.setStringValue(details.m_strVotes);
     attrs.insert(make_pair(VOTES_STR, votes));
 
     //For numeric types, we need to prefetch the AttributeType
@@ -1200,9 +1200,39 @@ int CVideoDatabase::SetDetailsForTvShow(const CStdString& strPath, const CVideoI
     }
 
     // and insert the new row
-    CStdString sql = "update tvshow set " + GetValueString(details, VIDEODB_ID_TV_MIN, VIDEODB_ID_TV_MAX, DbTvShowOffsets);
-    sql += PrepareSQL(" where idShow=%i", idTvShow);
-    m_pDS->exec(sql.c_str());
+    map<int, CAttribute> attrs;
+
+    CAttribute plot;
+    plot.setStringValue(details.m_strPlot);
+    attrs.insert(make_pair(VIDEO_SUMMARY_STR, plot));
+
+    CAttribute mpaa = CAttribute();
+    mpaa.setStringValue(details.m_strMPAARating);
+    attrs.insert(make_pair(CONTENTRATING_STR, mpaa));
+
+    CAttribute votes = CAttribute();
+    votes.setStringValue(details.m_strVotes);
+    attrs.insert(make_pair(VOTES_STR, votes));
+
+    //For numeric types, we need to prefetch the AttributeType
+    //to insure we convert precision correctly.
+    CAttributeType ratingType;
+    g_objectDatabase.GetAttributeType(USERRATING_NUM, ratingType);
+    CAttribute rating = CAttribute(ratingType);
+    rating.setNumericValue(details.m_fRating);
+    attrs.insert(make_pair(ratingType.idAttributeType, rating));
+
+    CAttribute year = CAttribute();
+    year.setStringValue(details.m_premiered.GetAsDBDate());
+    attrs.insert(make_pair(RELEASEDATE_STR, year));
+
+    CAttribute imdbNumber = CAttribute();
+    imdbNumber.setStringValue(details.m_strIMDBNumber);
+    attrs.insert(make_pair(ONLINEID_STR, imdbNumber));
+
+   g_objectDatabase.AddAttributesForObject(idTvShow, attrs);
+
+    g_objectDatabase.UpdateObjectName(idTvShow, details.m_strTitle);
 
     CommitTransaction();
 
@@ -1270,34 +1300,39 @@ int CVideoDatabase::SetDetailsForEpisode(const CStdString& strFilenameAndPath, c
     }
 
     // ensure we have this season already added
-    AddSeason(idShow, details.m_iSeason);
+    int idSeason = AddSeason(idShow, details.m_iSeason);
+    g_objectDatabase.LinkObjectToObject(SEASON_HAS_EPISODE, idSeason, idEpisode, "", details.m_iEpisode);
 
     SetArtForItem(idEpisode, "episode", artwork);
 
-    // query DB for any episodes matching idShow, Season and Episode
-    CStdString strSQL = PrepareSQL("select files.playCount, files.lastPlayed from episode, files where files.idFile=episode.idFile and episode.c%02d=%i and episode.c%02d=%i AND episode.idShow=%i and episode.idEpisode!=%i and files.playCount > 0",VIDEODB_ID_EPISODE_SEASON, details.m_iSeason, VIDEODB_ID_EPISODE_EPISODE, details.m_iEpisode, idShow, idEpisode);
-    m_pDS->query(strSQL.c_str());
-
-    if (!m_pDS->eof())
-    {
-      int playCount = m_pDS->fv("files.playCount").get_asInt();
-
-      CDateTime lastPlayed;
-      lastPlayed.SetFromDBDateTime(m_pDS->fv("files.lastPlayed").get_asString());
-
-      int idFile = GetFileId(strFilenameAndPath);
-
-      // update with playCount and lastPlayed
-      strSQL = PrepareSQL("update files set playCount=%i,lastPlayed='%s' where idFile=%i", playCount, lastPlayed.GetAsDBDateTime().c_str(), idFile);
-      m_pDS->exec(strSQL.c_str());
-    }
-
-    m_pDS->close();
 
     // and insert the new row
-    CStdString sql = "update episode set " + GetValueString(details, VIDEODB_ID_EPISODE_MIN, VIDEODB_ID_EPISODE_MAX, DbEpisodeOffsets);
-    sql += PrepareSQL(" where idEpisode=%i", idEpisode);
-    m_pDS->exec(sql.c_str());
+    map<int, CAttribute> attrs;
+
+    CAttribute plot;
+    plot.setStringValue(details.m_strPlot);
+    attrs.insert(make_pair(EPISODE_PLOT_STR, plot));
+
+    CAttribute votes = CAttribute();
+    votes.setStringValue(details.m_strVotes);
+    attrs.insert(make_pair(VOTES_STR, votes));
+
+    //For numeric types, we need to prefetch the AttributeType
+    //to insure we convert precision correctly.
+    CAttributeType ratingType;
+    g_objectDatabase.GetAttributeType(USERRATING_NUM, ratingType);
+    CAttribute rating = CAttribute(ratingType);
+    rating.setNumericValue(details.m_fRating);
+    attrs.insert(make_pair(ratingType.idAttributeType, rating));
+
+    CAttribute year = CAttribute();
+    year.setStringValue(details.m_firstAired.GetAsDBDate());
+    attrs.insert(make_pair(RELEASEDATE_STR, year));
+
+
+    g_objectDatabase.AddAttributesForObject(idEpisode, attrs);
+
+    g_objectDatabase.UpdateObjectName(idEpisode, details.m_strTitle);
     CommitTransaction();
 
     return idEpisode;
@@ -1311,11 +1346,16 @@ int CVideoDatabase::SetDetailsForEpisode(const CStdString& strFilenameAndPath, c
 
 int CVideoDatabase::GetSeasonId(int showID, int season)
 {
-  CStdString sql = PrepareSQL("idShow=%i AND season=%i", showID, season);
-  CStdString id = GetSingleValue("seasons", "idSeason", sql);
-  if (id.IsEmpty())
-    return -1;
-  return strtol(id.c_str(), NULL, 10);
+  vector<pair<int,int> > seasons;
+  if(g_objectDatabase.GetLinksForObject(showID, TVSHOW_HAS_SEASON, seasons, FIRST_OBJECT, season))
+  {
+	  if(!seasons.empty())
+	  {
+		 return seasons.front().first;
+	  }
+  }
+
+  return -1;
 }
 
 int CVideoDatabase::AddSeason(int showID, int season)
@@ -1323,9 +1363,9 @@ int CVideoDatabase::AddSeason(int showID, int season)
   int seasonId = GetSeasonId(showID, season);
   if (seasonId < 0)
   {
-    if (ExecuteQuery(PrepareSQL("INSERT INTO seasons (idShow,season) VALUES(%i,%i)", showID, season)))
-      seasonId = (int)m_pDS->lastinsertid();
+    seasonId = g_objectDatabase.AddObject(OBJ_SEASON,showID + "-" + season, "Season " + season);
   }
+  g_objectDatabase.LinkObjectToObject(TVSHOW_HAS_SEASON, showID, seasonId, "", season);
   return seasonId;
 }
 
