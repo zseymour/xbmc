@@ -53,6 +53,7 @@ namespace PVR
   class CPVRTimerInfoTag;
 }
 class CPictureInfoTag;
+class CObjectInfoTag;
 
 class CAlbum;
 class CArtist;
@@ -235,6 +236,18 @@ public:
   inline const CVideoInfoTag* GetVideoInfoTag() const
   {
     return m_videoInfoTag;
+  }
+
+  inline bool HasObjectInfoTag() const
+  {
+	  return m_objectInfoTag != NULL;
+  }
+
+  CObjectInfoTag* GetObjectInfoTag();
+
+  inline const CObjectInfoTag* GetObjectInfoTag() const
+  {
+	  return m_objectInfoTag;
   }
 
   inline bool HasEPGInfoTag() const
@@ -429,6 +442,7 @@ private:
   CStdString m_extrainfo;
   MUSIC_INFO::CMusicInfoTag* m_musicInfoTag;
   CVideoInfoTag* m_videoInfoTag;
+  CObjectInfoTag* m_objectInfoTag;
   EPG::CEpgInfoTag* m_epgInfoTag;
   PVR::CPVRChannel* m_pvrChannelInfoTag;
   PVR::CPVRRecording* m_pvrRecordingInfoTag;
