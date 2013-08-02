@@ -147,7 +147,7 @@ bool CObjectDatabase::CreateTables()
 		m_pDS->exec("CREATE  TABLE IF NOT EXISTS dirents (\n"
 				"  idDirent     INTEGER       NOT NULL  PRIMARY KEY  AUTOINCREMENT,\n"
 				"  idPath       INTEGER       NOT NULL ,\n"
-				"  filename     TEXT          NOT NULL ,\n"
+				"  filename     TEXT          NULL ,\n"
 				"  url          TEXT          NULL ,\n"
 				"  fileLength   INTEGER       NOT NULL  DEFAULT 0 ,\n"
 				"  fileHash     VARCHAR(32)   NULL ,\n"
@@ -304,6 +304,7 @@ void CObjectDatabase::CreateViews()
 			"       p.path             AS pPath,\n"
 			"		p.idParent         AS pParent,\n"
 			"       p.noUpdate         AS pNoUpdate,\n"
+			"       d.idDirent         AS dID,\n"
 			"       d.filename	  AS dFileName,\n"
 			"       IFNULL(d.filename,\n"
 			"               d.url)     AS dUrl,\n"
@@ -397,6 +398,10 @@ void CObjectDatabase::InsertDefaults()
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
 			"VALUES (%i, %i, '%s', '%s')", OBJ_STUDIO, OBJ_ORGANISATION, "studio", "Studios");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
+			"VALUES (%i, %i, '%s', '%s')", OBJ_COUNTRY, OBJ_ORGANISATION, "country", "Countries");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO objectTypes (idObjectType, idParentObjectType, stub, name) "
@@ -585,8 +590,16 @@ void CObjectDatabase::InsertDefaults()
 			"VALUES (%i,%i, %i,'%s', %i)", OBJECT_HAS_TAG, OBJ_OBJECT, OBJ_TAG, "object_has_tag", 1);
 	m_pDS->exec(sql.c_str());
 
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_GENRE, OBJ_MOVIE, OBJ_GENRE, "movie_has_genre");
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inhertiableType1)"
+			" VALUES (%i, %i, %i,'%s', 1)", VIDEO_HAS_DIRECTOR, OBJ_VIDEO, OBJ_DIRECTOR, "video_has_director");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inhertiableType1)"
+			" VALUES (%i, %i, %i,'%s', 1)", VIDEO_HAS_STUDIO, OBJ_VIDEO, OBJ_STUDIO, "video_has_studio");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub, inhertiableType1)"
+				" VALUES (%i, %i, %i,'%s', 1)", VIDEO_HAS_GENRE, OBJ_VIDEO, OBJ_GENRE, "video_has_genre");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
@@ -594,24 +607,16 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_STUDIO, OBJ_MOVIE, OBJ_STUDIO, "movie_has_studio");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_DIRECTOR, OBJ_MOVIE, OBJ_DIRECTOR, "movie_has_director");
-	m_pDS->exec(sql.c_str());
-
-	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_WRITER, OBJ_MOVIE, OBJ_WRITER, "movie_has_writer");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-				" VALUES (%i, %i, %i,'%s')", MOVIE_LINK_TVSHOW, OBJ_MOVIE, OBJ_TVSHOW, "movie_link_tvshow");
+				" VALUES (%i, %i, %i,'%s')", MOVIE_HAS_COUNTRY, OBJ_MOVIE, OBJ_COUNTRY, "movie_has_country");
 		m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_GENRE, OBJ_TVSHOW, OBJ_GENRE, "tvshow_has_genre");
-	m_pDS->exec(sql.c_str());
+				" VALUES (%i, %i, %i,'%s')", MOVIE_LINK_TVSHOW, OBJ_MOVIE, OBJ_TVSHOW, "movie_link_tvshow");
+		m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
 			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_ACTOR, OBJ_TVSHOW, OBJ_ACTOR, "tvshow_has_actor");
@@ -622,11 +627,19 @@ void CObjectDatabase::InsertDefaults()
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", TVSHOW_HAS_STUDIO, OBJ_TVSHOW, OBJ_STUDIO, "tvshow_has_studio");
+			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_ACTOR, OBJ_EPISODE, OBJ_ACTOR, "episode_has_actor");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
-			" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_ACTOR, OBJ_EPISODE, OBJ_ACTOR, "episode_has_actor");
+				" VALUES (%i, %i, %i,'%s')", EPISODE_HAS_WRITER, OBJ_EPISODE, OBJ_WRITER, "episode_has_writer");
+		m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICVIDEO_HAS_MUSICIAN, OBJ_MUSICVIDEO, OBJ_MUSICIAN, "musicvideo_has_musician");
+	m_pDS->exec(sql.c_str());
+
+	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
+			" VALUES (%i, %i, %i,'%s')", MUSICVIDEO_HAS_BAND, OBJ_MUSICVIDEO, OBJ_BAND, "musicvideo_has_band");
 	m_pDS->exec(sql.c_str());
 
 	sql = PrepareSQL("INSERT INTO relationshipTypes (idRelationshipType, idObjectType1, idObjectType2, stub)"
@@ -1429,6 +1442,41 @@ int CObjectDatabase::AddDirEnt(const CStdString& strFileNameAndPath)
 
 }
 
+int CObjectDatabase::GetFileId(const CStdString& strFileNameAndPath)
+{
+	CStdString strSQL = "";
+	try
+	{
+		int idDirent;
+		if (NULL == m_pDB.get()) return -1;
+		if (NULL == m_pDS.get()) return -1;
+
+		CStdString strFileName, strPath;
+		SplitPath(strFileNameAndPath,strPath,strFileName);
+
+		int idPath = GetPathId(strPath);
+		if (idPath < 0)
+			return -1;
+
+		CStdString strSQL=PrepareSQL("select idDirent from dirents where filename='%s' and idPath=%i", strFileName.c_str(),idPath);
+
+		m_pDS->query(strSQL.c_str());
+		if (m_pDS->num_rows() > 0)
+		{
+			idDirent = m_pDS->fv("idDirent").get_asInt() ;
+			m_pDS->close();
+			return idDirent;
+		}
+		m_pDS->close();
+
+	}
+	catch (...)
+	{
+		CLog::Log(LOGERROR, "%s unable to adddirent (%s)", __FUNCTION__, strSQL.c_str());
+	}
+	return -1;
+}
+
 void CObjectDatabase::UpdateDirentDateAdded(const int idDirent, CDateTime dateAdded)
 {
 	if (idDirent < 0)
@@ -1683,14 +1731,35 @@ int CObjectDatabase::GetObjectId(CStdString strFileNameAndPath)
 	CStdString strSQL = "";
 	try
 	{
-		int idObject;
+		int idObject = -1;
 		if (NULL == m_pDB.get()) return -1;
 		if (NULL == m_pDS.get()) return -1;
 
-		CStdString strFileName, strPath;
-		SplitPath(strFileNameAndPath,strPath,strFileName);
 
-		CStdString strSQL=PrepareSQL("select oID from viewObjectDirentAll where dFileName='%s' and pPath LIKE '%%%s%%'", strFileName.c_str(),strPath.c_str());
+
+		int idFile = GetFileId(strFileNameAndPath);
+		int idPath=-1;
+		CStdString strPath;
+		if (idFile < 0)
+		{
+			CStdString strFile;
+			SplitPath(strFileNameAndPath,strPath,strFile);
+
+			// have to join movieinfo table for correct results
+			idPath = GetPathId(strPath);
+			if (idPath < 0 && strPath != strFileNameAndPath)
+				return -1;
+		}
+
+		if (idFile == -1 && strPath != strFileNameAndPath)
+			return -1;
+
+		CStdString strSQL;
+
+		if(idFile == -1)
+			strSQL=PrepareSQL("select oID from viewObjectDirentAll where pID=%i", idPath);
+		else
+			strSQL=PrepareSQL("select oID from viewObjectDirentAll where dID=%i", idPath);
 
 		m_pDS->query(strSQL.c_str());
 		if (m_pDS->num_rows() > 0)
@@ -2267,7 +2336,7 @@ int CObjectDatabase::LinkObjectToObject(int idRelationshipType, int idObject1, i
 	return -1;
 }
 
-void CObjectDatabase::DeleteObjectLinks(int idObject)
+void CObjectDatabase::DeleteObjectLinks(int idObject, int idRelationshipType)
 {
 	CStdString strSQL;
 	try
@@ -2280,7 +2349,9 @@ void CObjectDatabase::DeleteObjectLinks(int idObject)
 		}
 
 
-		strSQL=PrepareSQL("delete from relationships where idObject1=%i or idObject2=%i", idObject, idObject);
+		strSQL=PrepareSQL("delete from relationships where (idObject1=%i or idObject2=%i)", idObject, idObject);
+		if(idRelationshipType > 0)
+			strSQL.AppendFormat(" AND idRelationshipType=%i", idRelationshipType);
 		m_pDS->exec(strSQL.c_str());
 
 	}

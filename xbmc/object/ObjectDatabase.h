@@ -58,6 +58,7 @@ enum ObjectTypeID
 	OBJ_MUSICIAN,
 	OBJ_BAND,
 	OBJ_STUDIO,
+	OBJ_COUNTRY,
 	OBJ_GROUPING,
 	OBJ_MOVIESET,
 	OBJ_SEASON,
@@ -100,17 +101,19 @@ enum AttributeTypeID
 enum RelationshipTypeID
 {
 	OBJECT_HAS_TAG = 1,
-	MOVIE_HAS_GENRE,
+	VIDEO_HAS_DIRECTOR,
+	VIDEO_HAS_STUDIO,
+	VIDEO_HAS_GENRE,
 	MOVIE_HAS_ACTOR,
-	MOVIE_HAS_DIRECTOR,
 	MOVIE_HAS_WRITER,
-	MOVIE_HAS_STUDIO,
+	MOVIE_HAS_COUNTRY,
 	MOVIE_LINK_TVSHOW,
-	TVSHOW_HAS_GENRE,
 	TVSHOW_HAS_ACTOR,
-	TVSHOW_HAS_STUDIO,
 	TVSHOW_HAS_SEASON,
 	EPISODE_HAS_ACTOR,
+	EPISODE_HAS_WRITER,
+	MUSICVIDEO_HAS_MUSICIAN,
+	MUSICVIDEO_HAS_BAND,
 	MUSICIAN_HAS_SONG,
 	MUSICIAN_HAS_ALBUM,
 	BAND_HAS_SONG,
@@ -174,6 +177,7 @@ public:
 	bool LinkScraperToPath(CStdString& scraper, CStdString& path);
 	bool ScraperInUse(const int idScraper);
 
+	int GetFileId(const CStdString& strFileNameAndPath);
 	int AddDirEnt(const CStdString& strFileNameAndPath);
 	int AddDirEnt(const CFileItem& item);
 	void UpdateDirentDateAdded(const int idDirent, CDateTime dateAdded);
@@ -207,7 +211,7 @@ public:
 	bool GetAllRelationshipTypeIDsForObjectType(int idObjectType, std::vector<std::pair <int,int> >& types);
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
 	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0, bool remove = false);
-	void DeleteObjectLinks(int idObject);
+	void DeleteObjectLinks(int idObject, int idRelationshipType = 0);
 	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
