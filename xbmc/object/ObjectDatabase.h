@@ -213,7 +213,7 @@ public:
 	int GetRelationshipId(int idRelationshipType, int idObject1, int idObject2, CStdString link, int index = 0);
 	int LinkObjectToObject(int idRelationshipType, int idObject1, int idObject2, CStdString link="", int index = 0, bool remove = false);
 	void DeleteObjectLinks(int idObject, int idRelationshipType = 0);
-	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, bool sort = false);
+	bool GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position = FIRST_OBJECT, int index = -1, bool sort = false);
 	bool GetRelationship(const int idRelationship, CRelationship& relationship);
 	bool GetAllRelationships(const int idObject, std::vector<CRelationship>& relations, int idRelationshipType = 0);
 	bool HasRelationship(const int idObject, const int idRelationshipType = 0);

@@ -2386,7 +2386,7 @@ void CObjectDatabase::DeleteObjectLinks(int idObject, int idRelationshipType)
 	}
 }
 
-bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position, bool sort)
+bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, std::vector<std::pair <int,int> >& objects, OBJECT_RELATIONSHIP_POSITION position, int index, bool sort)
 {
 	CStdString strSQL;
 	try
@@ -2405,6 +2405,9 @@ bool CObjectDatabase::GetLinksForObject(int idObject, int idRelationshipType, st
 			default:
 				return false;
 		}
+
+		if(index >= 0)
+			strSQL.AppendFormat(" and seqIndex=%i", index);
 
 		if(sort)
 			strSQL.AppendFormat(" order by seqIndex");
