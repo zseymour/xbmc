@@ -42,6 +42,7 @@
 #include "profiles/ProfilesManager.h"
 #include "settings/AdvancedSettings.h"
 #include "object/ObjectDatabase.h"
+#include "object/Relationship.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
 #include "settings/Settings.h"
@@ -233,28 +234,18 @@ bool CVideoDatabase::IsLinkedToTvshow(int idMovie)
 
 bool CVideoDatabase::GetLinksToTvShow(int idMovie, vector<int>& ids)
 {
-   try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
+   bool retVal = false;
+   vector<CRelationship> relations;
+   if(g_objectDatabase.GetAllRelationships(idMovie, relations, MOVIE_LINK_TVSHOW))
+   {
+	   retVal = true;
+	   for(std::vector<CRelationship>::iterator it = relations.begin(); it != relations.end(); ++it)
+	   {
+		   ids.push_back(it->m_o2ID);
+	   }
+   }
 
-    CStdString strSQL=PrepareSQL("select * from movielinktvshow where idMovie=%i", idMovie);
-    m_pDS2->query(strSQL.c_str());
-    while (!m_pDS2->eof())
-    {
-      ids.push_back(m_pDS2->fv(1).get_asInt());
-      m_pDS2->next();
-    }
-
-    m_pDS2->close();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%i) failed", __FUNCTION__, idMovie);
-  }
-
-  return false;
+   return retVal;
 }
 
 
