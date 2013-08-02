@@ -100,96 +100,12 @@ int CVideoDatabase::GetPathId(const CStdString& strPath)
 
 bool CVideoDatabase::GetPaths(set<CStdString> &paths)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-
-    paths.clear();
-
-    // grab all paths with movie content set
-    if (!m_pDS->query("select strPath,noUpdate from path"
-                      " where (strContent = 'movies' or strContent = 'musicvideos')"
-                      " and strPath NOT like 'multipath://%%'"
-                      " order by strPath"))
-      return false;
-
-    while (!m_pDS->eof())
-    {
-      if (!m_pDS->fv("noUpdate").get_asBool())
-        paths.insert(m_pDS->fv("strPath").get_asString());
-      m_pDS->next();
-    }
-    m_pDS->close();
-
-    // then grab all tvshow paths
-    if (!m_pDS->query("select strPath,noUpdate from path"
-                      " where ( strContent = 'tvshows'"
-                      "       or idPath in (select idPath from tvshowlinkpath))"
-                      " and strPath NOT like 'multipath://%%'"
-                      " order by strPath"))
-      return false;
-
-    while (!m_pDS->eof())
-    {
-      if (!m_pDS->fv("noUpdate").get_asBool())
-        paths.insert(m_pDS->fv("strPath").get_asString());
-      m_pDS->next();
-    }
-    m_pDS->close();
-
-    // finally grab all other paths holding a movie which is not a stack or a rar archive
-    // - this isnt perfect but it should do fine in most situations.
-    // reason we need it to hold a movie is stacks from different directories (cdx folders for instance)
-    // not making mistakes must take priority
-    if (!m_pDS->query("select strPath,noUpdate from path"
-                       " where idPath in (select idPath from files join movie on movie.idFile=files.idFile)"
-                       " and idPath NOT in (select idPath from tvshowlinkpath)"
-                       " and idPath NOT in (select idPath from files where strFileName like 'video_ts.ifo')" // dvd folders get stacked to a single item in parent folder
-                       " and idPath NOT in (select idPath from files where strFileName like 'index.bdmv')" // bluray folders get stacked to a single item in parent folder
-                       " and strPath NOT like 'multipath://%%'"
-                       " and strContent NOT in ('movies', 'tvshows', 'None')" // these have been added above
-                       " order by strPath"))
-
-      return false;
-    while (!m_pDS->eof())
-    {
-      if (!m_pDS->fv("noUpdate").get_asBool())
-        paths.insert(m_pDS->fv("strPath").get_asString());
-      m_pDS->next();
-    }
-    m_pDS->close();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s failed", __FUNCTION__);
-  }
-  return false;
+  return g_objectDatabase.GetPaths(paths, OBJ_VIDEO);
 }
 
 bool CVideoDatabase::GetPathsForTvShow(int idShow, set<int>& paths)
 {
-  CStdString strSQL;
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-    strSQL = PrepareSQL("SELECT DISTINCT idPath FROM files JOIN episode ON episode.idFile=files.idFile WHERE episode.idShow=%i",idShow);
-    m_pDS->query(strSQL.c_str());
-    while (!m_pDS->eof())
-    {
-      paths.insert(m_pDS->fv(0).get_asInt());
-      m_pDS->next();
-    }
-    m_pDS->close();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, strSQL.c_str());
-  }
-  return false;
+  return g_objectDatabase.GetPathsForObject(idShow, paths);
 }
 
 int CVideoDatabase::RunQuery(const CStdString &sql)
@@ -208,125 +124,23 @@ int CVideoDatabase::RunQuery(const CStdString &sql)
 
 bool CVideoDatabase::GetSubPaths(const CStdString &basepath, vector< pair<int,string> >& subpaths)
 {
-  CStdString sql;
-  try
-  {
-    if (!m_pDB.get() || !m_pDS.get())
-      return false;
-
-    CStdString path(basepath);
-    URIUtils::AddSlashAtEnd(path);
-    sql = PrepareSQL("SELECT idPath,strPath FROM path WHERE SUBSTR(strPath,1,%i)='%s'", StringUtils::utf8_strlen(path.c_str()), path.c_str());
-    m_pDS->query(sql.c_str());
-    while (!m_pDS->eof())
-    {
-      subpaths.push_back(make_pair(m_pDS->fv(0).get_asInt(), m_pDS->fv(1).get_asString()));
-      m_pDS->next();
-    }
-    m_pDS->close();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s error during query: %s",__FUNCTION__, sql.c_str());
-  }
-  return false;
+  return g_objectDatabase.GetSubPaths(basepath, subpaths);
 }
 
 int CVideoDatabase::AddPath(const CStdString& strPath, const CStdString &strDateAdded /*= "" */)
 {
-  CStdString strSQL;
-  try
-  {
-    int idPath = GetPathId(strPath);
-    if (idPath >= 0)
-      return idPath; // already have the path
-
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
-
-    CStdString strPath1(strPath);
-    if (URIUtils::IsStack(strPath) || strPath.Mid(0,6).Equals("rar://") || strPath.Mid(0,6).Equals("zip://"))
-      URIUtils::GetParentPath(strPath,strPath1);
-
-    URIUtils::AddSlashAtEnd(strPath1);
-
-    // only set dateadded if we got one
-    if (!strDateAdded.empty())
-      strSQL=PrepareSQL("insert into path (idPath, strPath, strContent, strScraper, dateAdded) values (NULL,'%s','','', '%s')", strPath1.c_str(), strDateAdded.c_str());
-    else
-      strSQL=PrepareSQL("insert into path (idPath, strPath, strContent, strScraper) values (NULL,'%s','','')", strPath1.c_str());
-    m_pDS->exec(strSQL.c_str());
-    idPath = (int)m_pDS->lastinsertid();
-    return idPath;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s unable to addpath (%s)", __FUNCTION__, strSQL.c_str());
-  }
-  return -1;
+  return g_objectDatabase.AddPath(strPath);
 }
 
 bool CVideoDatabase::GetPathHash(const CStdString &path, CStdString &hash)
 {
-  try
-  {
-    if (NULL == m_pDB.get()) return false;
-    if (NULL == m_pDS.get()) return false;
-
-    CStdString strSQL=PrepareSQL("select strHash from path where strPath='%s'", path.c_str());
-    m_pDS->query(strSQL.c_str());
-    if (m_pDS->num_rows() == 0)
-      return false;
-    hash = m_pDS->fv("strHash").get_asString();
-    return true;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s (%s) failed", __FUNCTION__, path.c_str());
-  }
-
-  return false;
+  return g_objectDatabase.GetPathHash(path, hash);
 }
 
 //********************************************************************************************************************************
 int CVideoDatabase::AddFile(const CStdString& strFileNameAndPath)
 {
-  CStdString strSQL = "";
-  try
-  {
-    int idFile;
-    if (NULL == m_pDB.get()) return -1;
-    if (NULL == m_pDS.get()) return -1;
-
-    CStdString strFileName, strPath;
-    SplitPath(strFileNameAndPath,strPath,strFileName);
-
-    int idPath = AddPath(strPath);
-    if (idPath < 0)
-      return -1;
-
-    CStdString strSQL=PrepareSQL("select idFile from files where strFileName='%s' and idPath=%i", strFileName.c_str(),idPath);
-
-    m_pDS->query(strSQL.c_str());
-    if (m_pDS->num_rows() > 0)
-    {
-      idFile = m_pDS->fv("idFile").get_asInt() ;
-      m_pDS->close();
-      return idFile;
-    }
-    m_pDS->close();
-
-    strSQL=PrepareSQL("insert into files (idFile, idPath, strFileName) values(NULL, %i, '%s')", idPath, strFileName.c_str());
-    m_pDS->exec(strSQL.c_str());
-    idFile = (int)m_pDS->lastinsertid();
-    return idFile;
-  }
-  catch (...)
-  {
-    CLog::Log(LOGERROR, "%s unable to addfile (%s)", __FUNCTION__, strSQL.c_str());
-  }
-  return -1;
+  return g_objectDatabase.AddDirEnt(strFileNameAndPath);
 }
 
 int CVideoDatabase::AddFile(const CFileItem& item)
